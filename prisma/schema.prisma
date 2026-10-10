@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum Role {
+  USER
+  ADMIN
+}
+enum ProductType {
+  PREMIX
+  READY_TO_EAT
+}
+enum OtpPurpose {
+  SIGNUP
+  LOGIN
+  RESET
+}
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  passwordHash String
+  verified Boolean @default(false)
+  role Role @default(USER)
+  createdAt DateTime @default(now())
+  sessions Session[]
+  cart CartItem[]
+  orders Order[]
+}
+model Session {
+  id String @id @default(cuid())
+  tokenHash String @unique
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  @@index([userId])
+}
+model Otp {
+  id String @id @default(cuid())
+  email String
+  purpose OtpPurpose
+  codeHash String
+  attempts Int @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@unique([email, purpose])
+}
+model RateLimit {
+  key String @id
+  count Int @default(1)
+  expiresAt DateTime
+}
+model Product {
+  id String @id @default(cuid())
+  name String
+  description String
+  price Int
+  image String
+  category String
+  productType ProductType @default(PREMIX)
+  weight String
+  badge String?
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cart CartItem[]
+  orderItems OrderItem[]
+}
+model CartItem {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product Product @relation(fields: [productId], references: [id])
+  quantity Int
+  notifiedAt DateTime?
+  @@unique([userId, productId])
+}
+model Order {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  name String
+  phone String
+  address String
+  city String
+  state String
+  pincode String
+  notes String?
+  total Int
+  shipping Int @default(0)
+  paymentMethod String @default("COD")
+  status OrderStatus @default(PLACED)
+  idempotencyKey String @unique
+  createdAt DateTime @default(now())
+  items OrderItem[]
+  @@index([userId, createdAt])
+}
+model OrderItem {
+  id String @id @default(cuid())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName String
+  productImage String
+  unitPrice Int
+  quantity Int
+}
+model EmailJob {
+  id String @id @default(cuid())
+  to String
+  subject String
+  text String
+  sentAt DateTime?
+  attempts Int @default(0)
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,2 @@
+CREATE TYPE "ProductType" AS ENUM ('PREMIX', 'READY_TO_EAT');
+ALTER TABLE "Product" ADD COLUMN "productType" "ProductType" NOT NULL DEFAULT 'PREMIX';
